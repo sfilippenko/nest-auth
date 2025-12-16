@@ -14,6 +14,7 @@ import { UpdateAuthDto } from './dto/update-auth.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ApiOperation } from '@nestjs/swagger';
 import { type Response } from 'express';
+import { LoginDto } from './dto/login.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -28,19 +29,36 @@ export class AuthController {
     summary: 'Регистрация пользователя',
   })
   @Post('register')
-  async register(@Body() registerDto: RegisterDto, @Res() res: Response) {
+  async register(
+    @Body() registerDto: RegisterDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const { accessToken, refreshToken } =
       await this.authService.register(registerDto);
 
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      sameSite: true,
-      maxAge: 24 * 60 * 60 * 7 * 1000,
-    });
+    this.setRefreshTokenCookie(res, refreshToken);
 
-    return res.json({
+    return {
       accessToken,
-    });
+    };
+  }
+
+  @ApiOperation({
+    summary: 'Логин пользователя',
+  })
+  @Post('login')
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { accessToken, refreshToken } =
+      await this.authService.login(loginDto);
+
+    this.setRefreshTokenCookie(res, refreshToken);
+
+    return {
+      accessToken,
+    };
   }
 
   @Get()
@@ -61,5 +79,13 @@ export class AuthController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.authService.remove(+id);
+  }
+
+  setRefreshTokenCookie(res: Response, refreshToken: string) {
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      sameSite: true,
+      maxAge: 24 * 60 * 60 * 7 * 1000,
+    });
   }
 }
