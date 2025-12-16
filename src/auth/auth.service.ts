@@ -3,13 +3,41 @@ import { CreateAuthDto } from './dto/create-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
+import { hash, argon2id } from 'argon2';
+import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly prismaService: PrismaService,
+    private readonly jwtService: JwtService,
+  ) {}
+
+  private async generateTokens(userId: string) {
+    const payload = { userId };
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        expiresIn: this.configService.getOrThrow<JwtSignOptions['expiresIn']>(
+          'JWT_ACCESS_TOKEN_TTL',
+        ),
+      }),
+      this.jwtService.signAsync(payload, {
+        expiresIn: this.configService.getOrThrow<JwtSignOptions['expiresIn']>(
+          'JWT_REFRESH_TOKEN_TTL',
+        ),
+      }),
+    ]);
+
+    return {
+      accessToken,
+      refreshToken,
+    };
+  }
 
   async register(registerDto: RegisterDto) {
-    const { email } = registerDto;
+    const { email, name, password } = registerDto;
 
     const existedUser = await this.prismaService.user.findUnique({
       where: {
@@ -21,9 +49,21 @@ export class AuthService {
       throw new ConflictException('User already exists');
     }
 
-    return this.prismaService.user.create({
-      data: registerDto,
+    const user = await this.prismaService.user.create({
+      data: {
+        email,
+        name,
+        password: await hash(password, {
+          type: argon2id, // Гибридный вариант - лучшая защита
+          memoryCost: 2 ** 16, // 64 MB - защита от GPU атак
+          timeCost: 3, // Можно увеличить до 5-10 если нужно
+          parallelism: 1, // Обычно 1 достаточно
+          hashLength: 32, // 32 байта достаточно
+        }),
+      },
     });
+
+    return this.generateTokens(user.id);
   }
 
   create(createAuthDto: CreateAuthDto) {

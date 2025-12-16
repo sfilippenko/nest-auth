@@ -6,12 +6,14 @@ import {
   Patch,
   Param,
   Delete,
+  Res,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ApiOperation } from '@nestjs/swagger';
+import { type Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -26,8 +28,19 @@ export class AuthController {
     summary: 'Регистрация пользователя',
   })
   @Post('register')
-  register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
+  async register(@Body() registerDto: RegisterDto, @Res() res: Response) {
+    const { accessToken, refreshToken } =
+      await this.authService.register(registerDto);
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      sameSite: true,
+      maxAge: 24 * 60 * 60 * 7 * 1000,
+    });
+
+    return res.json({
+      accessToken,
+    });
   }
 
   @Get()
