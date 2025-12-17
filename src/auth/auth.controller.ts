@@ -7,13 +7,14 @@ import {
   Param,
   Delete,
   Res,
+  Req,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ApiOperation } from '@nestjs/swagger';
-import { type Response } from 'express';
+import type { Request, Response } from 'express';
 import { LoginDto } from './dto/login.dto';
 
 @Controller('auth')
@@ -23,6 +24,22 @@ export class AuthController {
   @Post()
   create(@Body() createAuthDto: CreateAuthDto) {
     return this.authService.create(createAuthDto);
+  }
+
+  @ApiOperation({
+    summary: 'Обновить пару токенов',
+  })
+  @Get('refresh')
+  async refresh(
+    @Req() request: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { refreshToken, accessToken } = await this.authService.refresh(
+      request.signedCookies.refreshToken,
+    );
+    this.setRefreshTokenCookie(res, refreshToken);
+
+    return { accessToken };
   }
 
   @ApiOperation({
@@ -86,6 +103,7 @@ export class AuthController {
       httpOnly: true,
       sameSite: true,
       maxAge: 24 * 60 * 60 * 7 * 1000,
+      signed: true,
     });
   }
 }

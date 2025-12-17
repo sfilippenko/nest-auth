@@ -2,6 +2,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { UpdateAuthDto } from './dto/update-auth.dto';
@@ -11,6 +12,7 @@ import { hash, argon2id, verify } from 'argon2';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { LoginDto } from './dto/login.dto';
+import { JwtPayload } from '../interfaces/jwt.interface';
 
 @Injectable()
 export class AuthService {
@@ -21,7 +23,7 @@ export class AuthService {
   ) {}
 
   private async generateTokens(userId: string) {
-    const payload = { userId };
+    const payload: JwtPayload = { userId };
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         expiresIn: this.configService.getOrThrow<JwtSignOptions['expiresIn']>(
@@ -87,6 +89,36 @@ export class AuthService {
 
     if (!isPasswordVerified) {
       throw new NotFoundException('User does not exist');
+    }
+
+    return this.generateTokens(user.id);
+  }
+
+  async refresh(refreshToken: string) {
+    if (!refreshToken) {
+      throw new UnauthorizedException('No refresh token');
+    }
+
+    let payload: JwtPayload;
+
+    try {
+      payload = await this.jwtService.verifyAsync<JwtPayload>(refreshToken);
+    } catch (error) {
+      throw new UnauthorizedException('Wrong refresh token');
+    }
+
+    if (!payload?.userId) {
+      throw new UnauthorizedException('No id in token encoded');
+    }
+
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        id: payload.userId,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('No user');
     }
 
     return this.generateTokens(user.id);
