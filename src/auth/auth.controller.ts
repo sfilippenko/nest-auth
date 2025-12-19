@@ -1,17 +1,5 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  Res,
-  Req,
-} from '@nestjs/common';
+import { Controller, Post, Body, Res, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ApiOperation } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
@@ -21,15 +9,10 @@ import { LoginDto } from './dto/login.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post()
-  create(@Body() createAuthDto: CreateAuthDto) {
-    return this.authService.create(createAuthDto);
-  }
-
   @ApiOperation({
     summary: 'Обновить пару токенов',
   })
-  @Get('refresh')
+  @Post('refresh')
   async refresh(
     @Req() request: Request,
     @Res({ passthrough: true }) res: Response,
@@ -78,24 +61,19 @@ export class AuthController {
     };
   }
 
-  @Get()
-  findAll() {
-    return this.authService.findAll();
-  }
+  @ApiOperation({
+    summary: 'Логаут пользователя',
+    description: 'Удаление рефреш токена из куки',
+  })
+  @Post('logout')
+  logout(@Res({ passthrough: true }) res: Response) {
+    res.clearCookie('refreshToken', {
+      signed: true,
+    });
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.authService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAuthDto: UpdateAuthDto) {
-    return this.authService.update(+id, updateAuthDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.authService.remove(+id);
+    return {
+      logout: true,
+    };
   }
 
   setRefreshTokenCookie(res: Response, refreshToken: string) {

@@ -1,9 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import { ConfigService } from '@nestjs/config';
+import { getSwaggerConfig } from './config/swagger.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -30,17 +31,9 @@ async function bootstrap() {
     }),
   );
 
-  const config = new DocumentBuilder()
-    .setTitle('Nest js авторизация')
-    .setDescription('Курс из ютуб')
-    .setVersion('1.0')
-    .setContact(
-      'sfilippenko',
-      'https://www.youtube.com/watch?v=HT6cm4GoSIw&t=213s',
-      'fil_mf@mail.ru',
-    )
-    .build();
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
+  const swaggerConfig = getSwaggerConfig();
+  const documentFactory = () =>
+    SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('/docs', app, documentFactory, {
     customSiteTitle: 'Nest js авторизация',
   });
