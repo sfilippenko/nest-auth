@@ -1,9 +1,18 @@
-import { Controller, Post, Body, Res, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Res,
+  Req,
+  HttpStatus,
+  HttpCode,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
-import { ApiOperation } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { LoginDto } from './dto/login.dto';
+import { AuthTokenResponseDto } from './dto/auth.response.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -12,11 +21,15 @@ export class AuthController {
   @ApiOperation({
     summary: 'Обновить пару токенов',
   })
+  @ApiOkResponse({
+    type: AuthTokenResponseDto,
+  })
   @Post('refresh')
+  @HttpCode(HttpStatus.OK)
   async refresh(
     @Req() request: Request,
     @Res({ passthrough: true }) res: Response,
-  ) {
+  ): Promise<AuthTokenResponseDto> {
     const { refreshToken, accessToken } = await this.authService.refresh(
       request.signedCookies.refreshToken,
     );
@@ -28,11 +41,15 @@ export class AuthController {
   @ApiOperation({
     summary: 'Регистрация пользователя',
   })
+  @ApiOkResponse({
+    type: AuthTokenResponseDto,
+  })
   @Post('register')
+  @HttpCode(HttpStatus.OK)
   async register(
     @Body() registerDto: RegisterDto,
     @Res({ passthrough: true }) res: Response,
-  ) {
+  ): Promise<AuthTokenResponseDto> {
     const { accessToken, refreshToken } =
       await this.authService.register(registerDto);
 
@@ -46,11 +63,15 @@ export class AuthController {
   @ApiOperation({
     summary: 'Логин пользователя',
   })
+  @ApiOkResponse({
+    type: AuthTokenResponseDto,
+  })
   @Post('login')
+  @HttpCode(HttpStatus.OK)
   async login(
     @Body() loginDto: LoginDto,
     @Res({ passthrough: true }) res: Response,
-  ) {
+  ): Promise<AuthTokenResponseDto> {
     const { accessToken, refreshToken } =
       await this.authService.login(loginDto);
 
@@ -65,15 +86,17 @@ export class AuthController {
     summary: 'Логаут пользователя',
     description: 'Удаление рефреш токена из куки',
   })
+  @ApiOkResponse({
+    type: Boolean,
+  })
   @Post('logout')
+  @HttpCode(HttpStatus.OK)
   logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie('refreshToken', {
       signed: true,
     });
 
-    return {
-      logout: true,
-    };
+    return true;
   }
 
   setRefreshTokenCookie(res: Response, refreshToken: string) {
