@@ -6,6 +6,8 @@ import {
   Req,
   HttpStatus,
   HttpCode,
+  Get,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -13,6 +15,7 @@ import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { LoginDto } from './dto/login.dto';
 import { AuthTokenResponseDto } from './dto/auth.response.dto';
+import { JwtGuard } from './guards/jwt.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -97,6 +100,15 @@ export class AuthController {
     });
 
     return true;
+  }
+
+  @ApiOperation({
+    summary: 'Получить свои данные',
+  })
+  @UseGuards(JwtGuard)
+  @Get('my-profile')
+  getMyProfile(@Req() request: Request) {
+    return request.user;
   }
 
   setRefreshTokenCookie(res: Response, refreshToken: string) {

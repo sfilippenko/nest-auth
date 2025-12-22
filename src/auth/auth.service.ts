@@ -124,4 +124,26 @@ export class AuthService {
 
     return this.generateTokens(user.id);
   }
+
+  async validateJwt(payload: JwtPayload) {
+    if (!payload.userId) {
+      throw new UnauthorizedException('Invalid token payload');
+    }
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        id: payload.userId,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('No user');
+    }
+
+    return user;
+  }
 }
