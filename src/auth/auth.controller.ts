@@ -16,6 +16,9 @@ import type { Request, Response } from 'express';
 import { LoginDto } from './dto/login.dto';
 import { AuthTokenResponseDto } from './dto/auth.response.dto';
 import { JwtGuard } from './guards/jwt.guard';
+import { UserRequest } from './decorators/user-request.decorator';
+import { type User } from 'generated/prisma/client';
+import { UserResponseDto } from './dto/user-response.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -105,10 +108,13 @@ export class AuthController {
   @ApiOperation({
     summary: 'Получить свои данные',
   })
+  @ApiOkResponse({
+    type: UserResponseDto,
+  })
   @UseGuards(JwtGuard)
   @Get('my-profile')
-  getMyProfile(@Req() request: Request) {
-    return request.user;
+  getMyProfile(@UserRequest() user: UserResponseDto) {
+    return user;
   }
 
   setRefreshTokenCookie(res: Response, refreshToken: string) {

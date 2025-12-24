@@ -11,6 +11,7 @@ import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from '../interfaces/jwt.interface';
+import { UserResponseDto } from './dto/user-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -125,7 +126,7 @@ export class AuthService {
     return this.generateTokens(user.id);
   }
 
-  async validateJwt(payload: JwtPayload) {
+  async validateJwt(payload: JwtPayload): Promise<UserResponseDto> {
     if (!payload.userId) {
       throw new UnauthorizedException('Invalid token payload');
     }
