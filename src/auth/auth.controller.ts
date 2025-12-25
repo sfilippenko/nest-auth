@@ -7,7 +7,6 @@ import {
   HttpStatus,
   HttpCode,
   Get,
-  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -15,10 +14,9 @@ import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { LoginDto } from './dto/login.dto';
 import { AuthTokenResponseDto } from './dto/auth.response.dto';
-import { JwtGuard } from './guards/jwt.guard';
 import { UserRequest } from './decorators/user-request.decorator';
-import { type User } from 'generated/prisma/client';
 import { UserResponseDto } from './dto/user-response.dto';
+import { Authorization } from './decorators/authorization.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -111,7 +109,7 @@ export class AuthController {
   @ApiOkResponse({
     type: UserResponseDto,
   })
-  @UseGuards(JwtGuard)
+  @Authorization()
   @Get('my-profile')
   getMyProfile(@UserRequest() user: UserResponseDto) {
     return user;
